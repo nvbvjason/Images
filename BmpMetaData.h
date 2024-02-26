@@ -23,14 +23,20 @@ struct InfoHeader {
 class BmpMetaData {
     static constexpr uint8_t s_file_header_size = 14;
     static constexpr uint8_t s_file_info_size = 40;
-
-public:
-    FileHeader m_file_header{};
     InfoHeader m_file_info;
     const char *m_path;
-    bool is_top_down;
+    bool m_is_top_down;
+    FileHeader m_file_header{};
 
+public:
     explicit BmpMetaData(const char *path);
+
+    [[nodiscard]] bool top_down() const { return m_is_top_down; }
+    [[nodiscard]] const char *path() const { return m_path; }
+    [[nodiscard]] uint32_t offset() const { return m_file_header.offset; }
+    [[nodiscard]] int32_t size_header() const { return m_file_info.size_info_header; }
+    [[nodiscard]] int32_t width() const { return m_file_info.width; }
+    [[nodiscard]] int32_t height() const { return m_file_info.height; }
 };
 
 std::ostream &operator<<(std::ostream &os, const BmpMetaData &meta_data);

@@ -49,17 +49,16 @@ Image3x8::Image3x8(const Image3x8 &other)
 }
 
 Image3x8::Image3x8(const BmpMetaData &meta_data)
-    : c_height(meta_data.m_file_info.height), c_width(meta_data.m_file_info.width)
-      , c_offset(meta_data.m_file_header.offset)
+    : c_height(meta_data.height()), c_width(meta_data.width()), c_offset(meta_data.offset())
 {
     std::ifstream ifs;
-    ifs.open(meta_data.m_path, std::ios::in | std::ios::binary);
+    ifs.open(meta_data.path(), std::ios::in | std::ios::binary);
     if (!ifs.is_open()) {
         std::cout << "File could not be opened" << '\n';
         return;
     }
     const uint8_t padding_amount = ((4 - (c_width * 3) % 4) % 4);
-    ifs.ignore(meta_data.m_file_header.offset);
+    ifs.ignore(meta_data.offset());
 
     m_colors = new Pixel[c_height * c_width];
     for (int32_t row = 0; row < c_height; ++row) {
@@ -72,16 +71,16 @@ Image3x8::Image3x8(const BmpMetaData &meta_data)
         }
         ifs.ignore(padding_amount);
     }
-    if (meta_data.is_top_down)
+    if (meta_data.top_down())
         reflect_vertical();
     ifs.close();
     std::cout << "File read\n";
 }
 
 void Image3x8::black_out_part(const int32_t start_row,
-                           const int32_t end_row,
-                           const int32_t start_col,
-                           const int32_t end_col)
+                              const int32_t end_row,
+                              const int32_t start_col,
+                              const int32_t end_col)
 {
     for (int32_t row = start_row; row < end_row; ++row)
         for (int32_t col = start_col; col < end_col; ++col) {
@@ -242,19 +241,19 @@ void Image3x8::edges()
         for (int32_t col = 0; col < c_width; ++col) {
             kernel_3x3_0(row, col, copy, kernel_x, color_x);
             kernel_3x3_0(row, col, copy, kernel_y, color_y);
-            evaluate_edges(row, col ,color_x, color_y);
+            evaluate_edges(row, col, color_x, color_y);
             color_x.set_all_zero();
             color_y.set_all_zero();
         }
 }
 
 void Image3x8::evaluate_edges(const int32_t row,
-                           const int32_t col,
-                           const PixelDouble &color_x,
-                           const PixelDouble &color_y)
+                              const int32_t col,
+                              const PixelDouble &color_x,
+                              const PixelDouble &color_y)
 {
     const Pixel color = edges_color_eval(color_x, color_y);
-    constexpr double limit = 50;
+    constexpr double limit = 100;
     if (limit <= std::abs((*this)[row][col].red - color.red))
         (*this)[row][col].red = color.red;
     if (limit <= std::abs((*this)[row][col].green - color.green))
@@ -304,10 +303,10 @@ void Image3x8::init(const Image3x8 &other)
 }
 
 uint8_t Image3x8::kernel_3x3_0(const int32_t row_img,
-                            const int32_t col_img,
-                            const Image3x8 &copy,
-                            const std::vector<int8_t> &kernel,
-                            PixelDouble &color) const
+                               const int32_t col_img,
+                               const Image3x8 &copy,
+                               const std::vector<int8_t> &kernel,
+                               PixelDouble &color) const
 {
     uint8_t index = -1;
     uint8_t counter = 0;

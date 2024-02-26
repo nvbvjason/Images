@@ -3,9 +3,10 @@
 
 int main()
 {
-    BmpMetaData meta("yard.bmp");
+    const BmpMetaData meta("sample_1280×853.bmp");
     Image3x8 copy(meta);
-    copy.gray_scale_lum();
+    copy.gray_scale();
+    copy.edges();
     copy.write("copy.bmp");
     return 0;
 }

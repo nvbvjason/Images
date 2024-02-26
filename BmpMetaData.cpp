@@ -37,9 +37,9 @@ BmpMetaData::BmpMetaData(const char *path)
     m_file_info.size_info_header = file_info[0] + (file_info[1] << 8) + (file_info[2] << 16) + (file_info[3] << 24);
     m_file_info.width = file_info[4] + (file_info[5] << 8) + (file_info[6] << 16) + (file_info[7] << 24);
     m_file_info.height = file_info[8] + (file_info[9] << 8) + (file_info[10] << 16) + (file_info[11] << 24);
-    is_top_down = false;
+    m_is_top_down = false;
     if (m_file_info.height < 0) {
-        is_top_down = true;
+        m_is_top_down = true;
         m_file_info.height = -m_file_info.height;
     }
 }
