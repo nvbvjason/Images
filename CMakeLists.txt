@@ -3,4 +3,10 @@ project(untitled)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(untitled main.cpp)
+add_executable(untitled main.cpp
+        BmpMetaData.cpp
+        Image3x8.h
+        Image3x8.cpp
+        ReadPNG.cpp
+        read_file.cpp
+        read_file.h)
