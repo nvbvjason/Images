@@ -46,10 +46,10 @@ BmpMetaData::BmpMetaData(const char *path)
 
 std::ostream &operator<<(std::ostream &os, const BmpMetaData &meta_data)
 {
-    os << "Size " << meta_data.m_file_header.size << '\n';
-    os << "offset " << meta_data.m_file_header.offset << '\n';
-    os << "Size info header " << meta_data.m_file_info.size_info_header << '\n';
-    os << "Width " << meta_data.m_file_info.width << '\n';
-    os << "Height " << meta_data.m_file_info.height << '\n';
+    os << "Size " << meta_data.size_header() << '\n';
+    os << "offset " << meta_data.offset() << '\n';
+    os << "Size info header " << meta_data.size_header() << '\n';
+    os << "Height " << meta_data.height() << '\n';
+    os << "Width " << meta_data.width() << '\n';
     return os;
 }

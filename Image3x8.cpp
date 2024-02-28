@@ -299,7 +299,8 @@ void Image3x8::write(const char *path)
 
 void Image3x8::init(const Image3x8 &other)
 {
-    memcpy(reinterpret_cast<void *>(m_colors), reinterpret_cast<void *>(other.m_colors), other.size() * sizeof(Pixel));
+    memcpy(reinterpret_cast<void *>(m_colors), reinterpret_cast<void *>(other.m_colors),
+        other.size() * sizeof(Pixel));
 }
 
 uint8_t Image3x8::kernel_3x3_0(const int32_t row_img,
