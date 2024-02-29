@@ -43,26 +43,35 @@ void PixelDouble::set_all_zero()
 }
 
 Image3x8::Image3x8(const Image3x8 &other)
-    : c_height(other.height()), c_width(other.width()), c_offset(), m_colors(new Pixel[other.height() * other.width()])
+    : m_height(other.height()), m_width(other.width()), m_offset(), m_colors(new Pixel[other.height() * other.width()])
 {
     init(other);
 }
 
-Image3x8::Image3x8(const BmpMetaData &meta_data)
-    : c_height(meta_data.height()), c_width(meta_data.width()), c_offset(meta_data.offset())
+Image3x8::Image3x8(const char *path)
 {
+    const std::string path_file(path);
+    const std::string file = path_file.substr(path_file.size() - 3);
+    if (file != "bmp") {
+        std::cout << "Filetype " << file << " is not supported.\n";
+        throw std::exception();
+    }
+    BmpMetaData meta_data(path);
+    m_height = meta_data.height();
+    m_width = meta_data.width();
+    m_offset = meta_data.offset();
     std::ifstream ifs;
     ifs.open(meta_data.path(), std::ios::in | std::ios::binary);
     if (!ifs.is_open()) {
         std::cout << "File could not be opened" << '\n';
         return;
     }
-    const uint8_t padding_amount = ((4 - (c_width * 3) % 4) % 4);
+    const uint8_t padding_amount = ((4 - (m_width * 3) % 4) % 4);
     ifs.ignore(meta_data.offset());
 
-    m_colors = new Pixel[c_height * c_width];
-    for (int32_t row = 0; row < c_height; ++row) {
-        for (int32_t col = 0; col < c_width; ++col) {
+    m_colors = new Pixel[m_height * m_width];
+    for (int32_t row = 0; row < m_height; ++row) {
+        for (int32_t col = 0; col < m_width; ++col) {
             uint8_t color[3];
             ifs.read(reinterpret_cast<char *>(color), 3);
             (*this)[row][col].red = color[2];
@@ -147,21 +156,21 @@ void Image3x8::sepia()
 
 void Image3x8::reflect_horizontal()
 {
-    for (int32_t row = 0; row < c_height; ++row)
-        for (int32_t col = 0; col <= c_width / 2; ++col) {
+    for (int32_t row = 0; row < m_height; ++row)
+        for (int32_t col = 0; col <= m_width / 2; ++col) {
             const Pixel temp((*this)[row][col]);
-            (*this)[row][col] = (*this)[row][c_width - col - 1];
-            (*this)[row][c_width - col - 1] = temp;
+            (*this)[row][col] = (*this)[row][m_width - col - 1];
+            (*this)[row][m_width - col - 1] = temp;
         }
 }
 
 void Image3x8::reflect_vertical()
 {
-    for (int32_t row = 0; row < c_height / 2; ++row)
-        for (int32_t col = 0; col < c_width; ++col) {
+    for (int32_t row = 0; row < m_height / 2; ++row)
+        for (int32_t col = 0; col < m_width; ++col) {
             const Pixel temp((*this)[row][col]);
-            (*this)[row][col] = (*this)[c_height - row - 1][col];
-            (*this)[c_height - row - 1][col] = temp;
+            (*this)[row][col] = (*this)[m_height - row - 1][col];
+            (*this)[m_height - row - 1][col] = temp;
         }
 }
 
@@ -170,8 +179,8 @@ void Image3x8::blur()
     const Image3x8 copy(*this);
     PixelDouble color;
     const std::vector<int8_t> kernel = {1, 1, 1, 1, 1, 1, 1, 1, 1};
-    for (int32_t row = 0; row < c_height; ++row)
-        for (int32_t col = 0; col < c_width; ++col) {
+    for (int32_t row = 0; row < m_height; ++row)
+        for (int32_t col = 0; col < m_width; ++col) {
             const uint8_t counter = kernel_3x3_0(row, col, copy, kernel, color);
             eval_3x3_0(row, col, 1.0 / counter, color);
             color.set_all_zero();
@@ -183,8 +192,8 @@ void Image3x8::ridge()
     const Image3x8 copy(*this);
     PixelDouble color;
     const std::vector<int8_t> kernel = {0, -1, 0, -1, 4, -1, 0, -1, 0};
-    for (int32_t row = 0; row < c_height; ++row)
-        for (int32_t col = 0; col < c_width; ++col) {
+    for (int32_t row = 0; row < m_height; ++row)
+        for (int32_t col = 0; col < m_width; ++col) {
             kernel_3x3_0(row, col, copy, kernel, color);
             eval_3x3_0(row, col, 1.0, color);
             color.set_all_zero();
@@ -196,8 +205,8 @@ void Image3x8::sharpen()
     const Image3x8 copy(*this);
     PixelDouble color;
     const std::vector<int8_t> kernel = {0, -1, 0, -1, 5, -1, 0, -1, 0};
-    for (int32_t row = 0; row < c_height; ++row)
-        for (int32_t col = 0; col < c_width; ++col) {
+    for (int32_t row = 0; row < m_height; ++row)
+        for (int32_t col = 0; col < m_width; ++col) {
             kernel_3x3_0(row, col, copy, kernel, color);
             eval_3x3_0(row, col, 1.0, color);
             color.set_all_zero();
@@ -209,8 +218,8 @@ void Image3x8::emboss()
     const Image3x8 copy(*this);
     PixelDouble color;
     const std::vector<int8_t> kernel = {-2, -1, 0, -1, 1, 1, 0, 1, 2};
-    for (int32_t row = 0; row < c_height; ++row)
-        for (int32_t col = 0; col < c_width; ++col) {
+    for (int32_t row = 0; row < m_height; ++row)
+        for (int32_t col = 0; col < m_width; ++col) {
             kernel_3x3_0(row, col, copy, kernel, color);
             eval_3x3_0(row, col, 1.0, color);
             color.set_all_zero();
@@ -237,8 +246,8 @@ void Image3x8::edges()
     PixelDouble color_y;
     const std::vector<int8_t> kernel_x = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
     const std::vector<int8_t> kernel_y = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
-    for (int32_t row = 0; row < c_height; ++row)
-        for (int32_t col = 0; col < c_width; ++col) {
+    for (int32_t row = 0; row < m_height; ++row)
+        for (int32_t col = 0; col < m_width; ++col) {
             kernel_3x3_0(row, col, copy, kernel_x, color_x);
             kernel_3x3_0(row, col, copy, kernel_y, color_y);
             evaluate_edges(row, col, color_x, color_y);
@@ -271,9 +280,9 @@ void Image3x8::write(const char *path)
         std::cout << "File cannot be opened";
         return;
     }
-    const uint8_t padding_amount = (4 - (c_width * 3) % 4) % 4;
+    const uint8_t padding_amount = (4 - (m_width * 3) % 4) % 4;
     const size_t file_size = s_file_header_size + s_default_information_header_size
-                             + c_height * (c_width * 3 + padding_amount);
+                             + m_height * (m_width * 3 + padding_amount);
     uint8_t file_header[s_file_header_size];
     write_file_header(file_size, file_header);
     uint8_t information_header[s_default_information_header_size];
@@ -282,8 +291,8 @@ void Image3x8::write(const char *path)
     ofs.write(reinterpret_cast<char *>(file_header), s_file_header_size);
     ofs.write(reinterpret_cast<char *>(information_header), s_default_information_header_size);
     uint8_t bmpPad[3] = {0, 0, 0};
-    for (int32_t row = 0; row < c_height; ++row) {
-        for (int32_t col = 0; col < c_width; ++col) {
+    for (int32_t row = 0; row < m_height; ++row) {
+        for (int32_t col = 0; col < m_width; ++col) {
             const uint8_t r = (*this)[row][col].red;
             const uint8_t g = (*this)[row][col].green;
             const uint8_t b = (*this)[row][col].blue;
@@ -300,7 +309,7 @@ void Image3x8::write(const char *path)
 void Image3x8::init(const Image3x8 &other)
 {
     memcpy(reinterpret_cast<void *>(m_colors), reinterpret_cast<void *>(other.m_colors),
-        other.size() * sizeof(Pixel));
+           other.size() * sizeof(Pixel));
 }
 
 uint8_t Image3x8::kernel_3x3_0(const int32_t row_img,
@@ -314,9 +323,9 @@ uint8_t Image3x8::kernel_3x3_0(const int32_t row_img,
     for (int32_t row = row_img - 1; row <= row_img + 1; ++row) {
         for (int32_t col = col_img - 1; col <= col_img + 1; ++col) {
             ++index;
-            if (row <= -1 || c_height <= row)
+            if (row <= -1 || m_height <= row)
                 continue;
-            if (col <= -1 || c_width <= col)
+            if (col <= -1 || m_width <= col)
                 continue;
             ++counter;
             color.red += copy[row][col].red * kernel[index];
@@ -369,15 +378,15 @@ void Image3x8::write_information_header(uint8_t *information_header) const
     information_header[2] = 0;
     information_header[3] = 0;
     // Image width
-    information_header[4] = c_width;
-    information_header[5] = c_width >> 8;
-    information_header[6] = c_width >> 16;
-    information_header[7] = c_width >> 24;
+    information_header[4] = m_width;
+    information_header[5] = m_width >> 8;
+    information_header[6] = m_width >> 16;
+    information_header[7] = m_width >> 24;
     // Image height
-    information_header[8] = c_height;
-    information_header[9] = c_height >> 8;
-    information_header[10] = c_height >> 16;
-    information_header[11] = c_height >> 24;
+    information_header[8] = m_height;
+    information_header[9] = m_height >> 8;
+    information_header[10] = m_height >> 16;
+    information_header[11] = m_height >> 24;
     // Planes
     information_header[12] = 1;
     information_header[13] = 0;
