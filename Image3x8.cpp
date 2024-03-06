@@ -203,6 +203,16 @@ void Image3x8::color_mask(const double red, const double green, const double blu
     }
 }
 
+#if 0
+1 6 4 6 2 6 4 6
+7 7 7 7 7 7 7 7
+5 6 5 6 5 6 5 6
+7 7 7 7 7 7 7 7
+3 6 4 6 3 6 4 6
+7 7 7 7 7 7 7 7
+5 6 5 6 5 6 5 6
+7 7 7 7 7 7 7 7
+#endif
 std::vector<Image3x8> Image3x8::interlace() const
 {
     std::vector<Image3x8> result(7);
