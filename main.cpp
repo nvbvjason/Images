@@ -1,8 +1,7 @@
-#include "BmpMetaData.h"
-#include "ReadPNG.h"
+#include "test.h"
 
 int main()
 {
-
+    test_interlacing();
     return 0;
 }

@@ -9,4 +9,6 @@ add_executable(untitled main.cpp
         Image3x8.cpp
         ReadPNG.cpp
         read_file.cpp
-        read_file.h)
+        read_file.h
+        test.cpp
+        test.h)
