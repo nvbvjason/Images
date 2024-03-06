@@ -39,6 +39,7 @@ class Image3x8 {
 
 public:
     // CREATORS
+    Image3x8();
     Image3x8(const std::vector<uint8_t> &data, int32_t height, int32_t width);
     Image3x8(const Image3x8 &other);
     Image3x8(Image3x8 &&other) noexcept;
