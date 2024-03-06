@@ -44,6 +44,11 @@ void PixelDouble::set_all_zero()
     blue = 0;
 }
 
+Image3x8::Image3x8()
+    : m_height(0), m_width(0), m_offset(s_file_header_size + s_default_information_header_size), m_pixels(new Pixel[1])
+{
+}
+
 Image3x8::Image3x8(const std::vector<uint8_t> &data, const int32_t height, const int32_t width)
     : m_height(height), m_width(width), m_offset(s_file_header_size + s_default_information_header_size),
       m_pixels(new Pixel[height * width])
@@ -200,7 +205,7 @@ void Image3x8::color_mask(const double red, const double green, const double blu
 
 std::vector<Image3x8> Image3x8::interlace() const
 {
-    std::vector<Image3x8> result;
+    std::vector<Image3x8> result(7);
     Image3x8 one((m_height + 7) / 8, (m_width + 7) / 8);
     Image3x8 two((m_height + 7) / 8, (m_width + 7) / 8);
     Image3x8 three((m_height + 3) / 8, (m_width + 3) / 4);
@@ -225,13 +230,13 @@ std::vector<Image3x8> Image3x8::interlace() const
             else if (row % 8 == 0 && col % 8 == 0)
                 one[row / 8][col / 8] = (*this)[row][col];
         }
-    result.push_back(one);
-    result.push_back(two);
-    result.push_back(three);
-    result.push_back(four);
-    result.push_back(five);
-    result.push_back(six);
-    result.push_back(seven);
+    result[0] = one;
+    result[1] = two;
+    result[2] = three;
+    result[3] = four;
+    result[4] = five;
+    result[5] = six;
+    result[6] = seven;
     return result;
 }
 
