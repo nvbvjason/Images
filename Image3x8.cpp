@@ -19,11 +19,11 @@ Pixel::Pixel(const uint8_t r, const uint8_t g, const uint8_t b)
 
 Pixel::Pixel(const Pixel &other) = default;
 
+
 PixelDouble::PixelDouble()
     : red(0), green(0), blue(0)
 {
 }
-
 
 PixelDouble::PixelDouble(const double r, const double g, const double b)
     : red(r), green(g), blue(b)
@@ -31,7 +31,6 @@ PixelDouble::PixelDouble(const double r, const double g, const double b)
 }
 
 PixelDouble::PixelDouble(const PixelDouble &other) = default;
-
 PixelDouble::PixelDouble(const Pixel &other)
     : red(other.red), green(other.green), blue(other.blue)
 {
@@ -49,6 +48,7 @@ Image3x8::Image3x8()
 {
 }
 
+
 Image3x8::Image3x8(const std::vector<uint8_t> &data, const int32_t height, const int32_t width)
     : m_height(height), m_width(width), m_offset(s_file_header_size + s_default_information_header_size),
       m_pixels(new Pixel[height * width])
@@ -61,14 +61,17 @@ Image3x8::Image3x8(const std::vector<uint8_t> &data, const int32_t height, const
         }
 }
 
+
 Image3x8::Image3x8(const Image3x8 &other)
     : m_height(other.m_height), m_width(other.m_width), m_offset(other.m_offset),
       m_pixels(new Pixel[other.m_height * other.m_width])
+
 {
     for (int32_t row = 0; row < m_height; ++row)
         for (int32_t col = 0; col < m_width; ++col)
             (*this)[row][col] = other[row][col];
 }
+
 
 Image3x8::Image3x8(Image3x8 &&other) noexcept
     : m_height(other.m_height), m_width(other.m_width), m_offset(other.m_offset),
@@ -99,7 +102,6 @@ Image3x8::Image3x8(const char *path)
     }
     const uint8_t padding_amount = ((4 - (m_width * 3) % 4) % 4);
     ifs.ignore(meta_data.offset());
-
     m_pixels = new Pixel[m_height * m_width];
     for (int32_t row = 0; row < m_height; ++row) {
         for (int32_t col = 0; col < m_width; ++col) {
@@ -116,6 +118,7 @@ Image3x8::Image3x8(const char *path)
     ifs.close();
     std::cout << "File read\n";
 }
+
 
 Image3x8::Image3x8(const int32_t height, const int32_t width)
     : m_height(height), m_width(width),
@@ -213,6 +216,7 @@ void Image3x8::color_mask(const double red, const double green, const double blu
 5 6 5 6 5 6 5 6
 7 7 7 7 7 7 7 7
 #endif
+
 std::vector<Image3x8> Image3x8::interlace() const
 {
     std::vector<Image3x8> result(7);
@@ -351,6 +355,7 @@ void Image3x8::emboss()
 }
 
 void Image3x8::eval_3x3_0(const int32_t row, const int32_t col, const double factor, const PixelDouble &color)
+
 {
     double temp = color.red * factor;
     clamp(temp, 0, 255);
@@ -395,8 +400,8 @@ void Image3x8::evaluate_edges(const int32_t row,
         (*this)[row][col].blue = color.blue;
 }
 
-
 void Image3x8::write(const char *path)
+
 {
     std::ofstream ofs;
     ofs.open(path, std::ios::out | std::ios::binary);
@@ -411,7 +416,6 @@ void Image3x8::write(const char *path)
     write_file_header(file_size, file_header);
     uint8_t information_header[s_default_information_header_size];
     write_information_header(information_header);
-
     ofs.write(reinterpret_cast<char *>(file_header), s_file_header_size);
     ofs.write(reinterpret_cast<char *>(information_header), s_default_information_header_size);
     uint8_t bmpPad[3] = {0, 0, 0};
@@ -420,7 +424,6 @@ void Image3x8::write(const char *path)
             const uint8_t r = (*this)[row][col].red;
             const uint8_t g = (*this)[row][col].green;
             const uint8_t b = (*this)[row][col].blue;
-
             uint8_t color[3] = {b, g, r};
             ofs.write(reinterpret_cast<char *>(color), 3);
         }
@@ -453,6 +456,7 @@ uint8_t Image3x8::kernel_3x3_0(const int32_t row_img,
     }
     return counter;
 }
+
 
 Pixel edges_color_eval(const PixelDouble &color_x, const PixelDouble &color_y)
 {
@@ -566,6 +570,7 @@ static Pixel get_pixel(const std::vector<Image3x8> &images,
     throw std::exception();
 }
 
+
 static std::vector<std::vector<int8_t> > make_interlace_kernel(const int32_t size)
 {
     std::vector<std::vector<int8_t> > result(8, std::vector<int8_t>(8));
@@ -625,48 +630,69 @@ Image3x8 interlace(const std::vector<Image3x8> &images, const int32_t height, co
     return result;
 }
 
-static std::vector<uint8_t> filter(const Image3x8 &image, const uint8_t filer_type)
+size_t index_(const int32_t row, const int32_t col, const int32_t width)
 {
-    std::vector<uint8_t> result(image.height() * image.width() * 3 + image.height() * 1);
+    return (row * width + col) * 3 + (row + 1);
+}
+
+std::vector<uint8_t> filter(const Image3x8 &image, const uint8_t fitler_type)
+{
+    assert(fitler_type <= 5 && "out of range filter_type");
+    const int64_t length_scanline = image.width() * 3 + 1;
+    std::vector<uint8_t> result((image.height() * image.width()) * 3 + image.height());
     for (int32_t row = 0; row < image.height(); ++row) {
-        result[(row * image.width())] = filer_type;
-        for (int32_t col = 0; col < image.width(); ++col) {
-            switch (filer_type) {
-                case 0:
-                    break;
-                case 1: {
-                    if (col == 0)
-                        continue;
+        result[length_scanline * row] = fitler_type;
+        switch (fitler_type) {
+            case 0:
+                for (int32_t col = 0; col < image.width(); ++col) {
+                    const size_t index = index_(row, col, image.width());
                     const Pixel x = image[row][col];
-                    const Pixel a = image[row][col - 1];
-                    result[(row * image.width() + col) * 3 + 0] = filter_one_two(x.red, a.red);
-                    result[(row * image.width() + col) * 3 + 1] = filter_one_two(x.green, a.green);
-                    result[(row * image.width() + col) * 3 + 2] = filter_one_two(x.blue, a.blue);
-                    break;
+                    result[index + 0] = x.red;
+                    result[index + 1] = x.green;
+                    result[index + 2] = x.blue;
                 }
-                case 2: {
-                    if (row == 0)
-                        continue;
+                break;
+            case 1:
+                for (int32_t col = 0; col < image.width(); ++col) {
+                    const size_t index = index_(row, col, image.width());
                     const Pixel x = image[row][col];
-                    const Pixel b = image[row - 1][col];
-                    result[(row * image.width() + col) * 3 + 0] = filter_one_two(x.red, b.red);
-                    result[(row * image.width() + col) * 3 + 1] = filter_one_two(x.green, b.green);
-                    result[(row * image.width() + col) * 3 + 2] = filter_one_two(x.blue, b.blue);
-                    break;
-                }
-                case 3: {
-                    Pixel a, b;
-                    const Pixel x = image[row][col];
-                    if (row != 0)
-                        b = image[row - 1][col];
+                    Pixel a;
                     if (col != 0)
                         a = image[row][col - 1];
-                    result[(row * image.width() + col) * 3 + 0] = filter_three(x.red, a.red, b.red);
-                    result[(row * image.width() + col) * 3 + 1] = filter_three(x.green, a.green, b.green);
-                    result[(row * image.width() + col) * 3 + 2] = filter_three(x.blue, a.blue, b.blue);
-                    break;
+                    result[index + 0] = filter_one_two(x.red, a.red);
+                    result[index + 1] = filter_one_two(x.green, a.green);
+                    result[index + 2] = filter_one_two(x.blue, a.blue);
                 }
-                case 4: {
+                break;
+            case 2:
+                for (int32_t col = 0; col < image.width(); ++col) {
+                    const size_t index = index_(row, col, image.width());
+                    const Pixel x = image[row][col];
+                    Pixel b;
+                    if (row != 0)
+                        b = image[row - 1][col];
+                    result[index + 0] = filter_one_two(x.red, b.red);
+                    result[index + 1] = filter_one_two(x.green, b.green);
+                    result[index + 2] = filter_one_two(x.blue, b.blue);
+                }
+                break;
+            case 3:
+                for (int32_t col = 0; col < image.width(); ++col) {
+                    const size_t index = index_(row, col, image.width());
+                    Pixel a, b;
+                    const Pixel x = image[row][col];
+                    if (col != 0)
+                        a = image[row][col - 1];
+                    if (row != 0)
+                        b = image[row - 1][col];
+                    result[index + 0] = filter_three(x.red, a.red, b.red);
+                    result[index + 1] = filter_three(x.green, a.green, b.green);
+                    result[index + 2] = filter_three(x.blue, a.blue, b.blue);
+                }
+                break;
+            case 4:
+                for (int32_t col = 0; col < image.width(); ++col) {
+                    const size_t index = index_(row, col, image.width());
                     Pixel a, b, c;
                     const Pixel x = image[row][col];
                     if (row != 0)
@@ -675,14 +701,13 @@ static std::vector<uint8_t> filter(const Image3x8 &image, const uint8_t filer_ty
                         a = image[row][col - 1];
                     if (row != 0 && col != 0)
                         c = image[row - 1][col - 1];
-                    result[(row * image.width() + col) * 3 + 0] = filter_four(x.red, a.red, b.red, c.red);
-                    result[(row * image.width() + col) * 3 + 1] = filter_four(x.green, a.green, b.green, c.green);
-                    result[(row * image.width() + col) * 3 + 2] = filter_four(x.blue, a.blue, b.blue, c.blue);
-                    break;
+                    result[index + 0] = (x.red - peath(a.red, b.red, c.red)) % 256;
+                    result[index + 1] = (x.green - peath(a.green, b.green, c.green)) % 256;
+                    result[index + 2] = (x.blue - peath(a.blue, b.blue, c.blue)) % 256;
                 }
-                default:
-                    throw std::exception();
-            }
+                break;
+            default:
+                throw std::exception();
         }
     }
     return result;
@@ -690,20 +715,20 @@ static std::vector<uint8_t> filter(const Image3x8 &image, const uint8_t filer_ty
 
 uint8_t filter_one_two(const uint8_t x, const uint8_t ab)
 {
-    return x - ab;
+    return (x - ab) % 256;
 }
 
 static uint8_t filter_three(const uint8_t x, const uint8_t a, const uint8_t b)
 {
-    return x - (a - b) / 2;
+    return (x - (a + b) / 2) % 256;
 }
 
-static uint8_t filter_four(uint8_t x, const uint8_t a, const uint8_t b, const uint8_t c)
+static uint8_t peath(const uint8_t a, const uint8_t b, const uint8_t c)
 {
-    int16_t p = a + b + c;
-    int16_t pa = std::abs(p - a);
-    int16_t pb = std::abs(p - b);
-    int16_t pc = std::abs(p - c);
+    const int32_t p = a + b + c;
+    int32_t pa = std::abs(p - a);
+    int32_t pb = std::abs(p - b);
+    int32_t pc = std::abs(p - c);
     if (pa <= pb && pa <= pc)
         return a;
     if (pb <= pc)
@@ -711,9 +736,88 @@ static uint8_t filter_four(uint8_t x, const uint8_t a, const uint8_t b, const ui
     return c;
 }
 
-static Image3x8 defilter(const std::vector<uint8_t> &data, const int32_t height, const int32_t width)
+Image3x8 defilter(const std::vector<uint8_t> &data, const int32_t height, const int32_t width)
 {
     Image3x8 result(height, width);
-    //for ()
+    result[0][0].red = data[1 + 0];
+    result[0][0].green = data[1 + 1];
+    result[0][0].blue = data[1 + 2];
+    for (int32_t row = 0; row < height; ++row) {
+        const uint32_t filter_type = data[row * width * 3 + row];
+        assert(filter_type <= 5 && "out of range filter_type");
+        switch (filter_type) {
+            case 0:
+                for (int32_t col = 0; col < width; ++col) {
+                    const size_t index_x = index_(row, col, width);
+                    result[row][col].red = data[index_x + 0];
+                    result[row][col].green = data[index_x + 1];
+                    result[row][col].blue = data[index_x + 2];
+                }
+                break;
+            case 1:
+                for (int32_t col = 0; col < width; ++col) {
+                    const size_t index_x = index_(row, col, width);
+                    Pixel a;
+                    if (col != 0)
+                        a = result[row][col - 1];
+                    result[row][col].red = defilter_one_two(data[index_x + 0], a.red);
+                    result[row][col].green = defilter_one_two(data[index_x + 1], a.green);
+                    result[row][col].blue = defilter_one_two(data[index_x + 2], a.blue);
+                }
+                break;
+            case 2:
+                for (int32_t col = 0; col < width; ++col) {
+                    const size_t index_x = index_(row, col, width);
+                    Pixel b;
+                    if (row != 0)
+                        b = result[row - 1][col];
+                    result[row][col].red = defilter_one_two(data[index_x + 0], b.red);
+                    result[row][col].green = defilter_one_two(data[index_x + 1], b.green);
+                    result[row][col].blue = defilter_one_two(data[index_x + 2], b.blue);
+                }
+                break;
+            case 3:
+                for (int32_t col = 0; col < width; ++col) {
+                    const size_t index_x = index_(row, col, width);
+                    Pixel a, b;
+                    if (col != 0)
+                        a = result[row][col - 1];
+                    if (row != 0)
+                        b = result[row - 1][col];
+                    result[row][col].red = defilter_three(data[index_x + 0], a.red, b.red);
+                    result[row][col].green = defilter_three(data[index_x + 1], a.green, b.green);
+                    result[row][col].blue = defilter_three(data[index_x + 2], a.blue, b.blue);
+                }
+                break;
+            case 4:
+                for (int32_t col = 0; col < width; ++col) {
+                    const size_t index_x = index_(row, col, width);
+                    Pixel a, b, c;
+                    if (col != 0)
+                        a = result[row][col - 1];
+                    if (row != 0)
+                        b = result[row - 1][col];
+                    if (row != 0 && col != 0)
+                        c = result[row - 1][col - 1];
+                    result[row][col].red = (data[index_x + 0] + peath(a.red, b.red, c.red)) % 256;
+                    result[row][col].green = (data[index_x + 1] + peath(a.green, b.green, c.green)) % 256;
+                    result[row][col].blue = (data[index_x + 2] + peath(a.blue, b.blue, c.blue)) % 256;
+                }
+                break;
+            default:
+                throw std::exception();
+        }
+    }
     return result;
+}
+
+static uint8_t defilter_one_two(const uint8_t x, const uint8_t ab)
+{
+    return (x + ab) % 256;
+}
+
+static uint8_t defilter_three(const uint8_t x, const uint8_t a, const uint8_t b)
+
+{
+    return (x + (a + b) / 2) % 256;
 }

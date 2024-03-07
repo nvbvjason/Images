@@ -17,6 +17,7 @@ struct Pixel {
     Pixel(const Pixel &other);
 };
 
+
 struct PixelDouble {
     double red;
     double green;
@@ -28,6 +29,7 @@ struct PixelDouble {
     explicit PixelDouble(const Pixel &other);
     void set_all_zero();
 };
+
 
 class Image3x8 {
     int32_t m_height;
@@ -72,7 +74,6 @@ public:
     [[nodiscard]] uint32_t offset() const { return m_offset; }
     [[nodiscard]] size_t size() const { return m_height * m_width; }
     [[nodiscard]] const Pixel *operator[](const int32_t row) const { return m_pixels + m_width * row; }
-
     void write(const char *path);
 
 private:
@@ -96,12 +97,14 @@ static Pixel get_pixel(const std::vector<Image3x8> &images,
                        int32_t width);
 Image3x8 interlace(const std::vector<Image3x8> &images, int32_t height, int32_t width);
 static std::vector<std::vector<int8_t> > make_interlace_kernel(int32_t size);
-static std::vector<uint8_t> filter(const Image3x8 &image, uint8_t filer_type);
-static void filter_pixel();
+std::vector<uint8_t> filter(const Image3x8 &image, uint8_t fitler_type);
+static size_t index_(int32_t row, int32_t col, int32_t width);
 static uint8_t filter_one_two(uint8_t x, uint8_t ab);
 static uint8_t filter_three(uint8_t x, uint8_t a, uint8_t b);
-static uint8_t filter_four(uint8_t x, uint8_t a, uint8_t b, uint8_t c);
-static Image3x8 defilter(const std::vector<uint8_t> &data, int32_t height, int32_t width);
+static uint8_t peath(uint8_t a, uint8_t b, uint8_t c);
+Image3x8 defilter(const std::vector<uint8_t> &data, int32_t height, int32_t width);
+static uint8_t defilter_one_two(uint8_t x, uint8_t ab);
+static uint8_t defilter_three(uint8_t x, uint8_t a, uint8_t b);
 
 void Image3x8::edges_pixel_helper(const int32_t row, const int32_t col, const Image3x8 &copy, PixelDouble &color,
                                   const double factor)
@@ -110,7 +113,6 @@ void Image3x8::edges_pixel_helper(const int32_t row, const int32_t col, const Im
     color.green += factor * copy[row][col].green;
     color.blue += factor * copy[row][col].blue;
 }
-
 
 static void clamp(double &num, const int32_t low, const int32_t up)
 {
