@@ -235,7 +235,6 @@ void Image3x8::color_mask(const double red, const double green, const double blu
 5 6 5 6 5 6 5 6
 7 7 7 7 7 7 7 7
 #endif
-
 std::vector<Image3x8> Image3x8::interlace() const
 {
     std::vector<Image3x8> result(7);
@@ -338,10 +337,9 @@ void Image3x8::gaussian_blur(const double std_deviation)
 {
     const std::vector<double> kernel = make_gauss_kernel(std_deviation);
     const Image3x8 copy = gaussian_copy(get_kernel_distance(kernel));
-    copy.write("c://project//yard_gauss_copy.bmp");
     for (int32_t row = 0; row < m_height; ++row)
         for (int32_t col = 0; col < m_width; ++col)
-            (*this)[row][col] = gaussian_kernel(row, col, copy, kernel);
+            (*this)[row][col] = apply_gaussian_kernel(row, col, copy, kernel);
 }
 
 void Image3x8::ridge()
@@ -461,7 +459,7 @@ void Image3x8::write(const char* path) const
     std::cout << "file created\n";
 }
 
-Image3x8 Image3x8::gaussian_copy(const int32_t distance)
+Image3x8 Image3x8::gaussian_copy(const int32_t distance) const
 {
     Image3x8 result(m_height + distance * 2, m_width + distance * 2);
     for (int32_t row = 0; row < m_height; ++row)
@@ -489,10 +487,10 @@ Image3x8 Image3x8::gaussian_copy(const int32_t distance)
     return result;
 }
 
-Pixel Image3x8::gaussian_kernel(int32_t row_img,
-                                int32_t col_img,
-                                const Image3x8& copy,
-                                const std::vector<double>& kernel)
+Pixel Image3x8::apply_gaussian_kernel(int32_t row_img,
+                                      int32_t col_img,
+                                      const Image3x8& copy,
+                                      const std::vector<double>& kernel)
 {
     PixelDouble temp;
     int32_t index_kernel = 0;
@@ -506,8 +504,7 @@ Pixel Image3x8::gaussian_kernel(int32_t row_img,
             temp.blue += kernel[index_kernel] * copy[row][col].blue;
             ++index_kernel;
         }
-    Pixel result(temp);
-    return result;
+    return static_cast<Pixel>(temp);
 }
 
 uint8_t Image3x8::kernel_3x3_0(const int32_t row_img,
@@ -696,7 +693,7 @@ Image3x8 interlace(const std::vector<Image3x8>& images, const int32_t height, co
 {
     if (images.empty() || 8 <= images.size())
         throw std::exception();
-    const std::vector<std::vector<int8_t> > interlace_kernel = make_interlace_kernel(images.size());
+    const std::vector<std::vector<int8_t> > interlace_kernel = make_interlace_kernel(static_cast<int32_t>(images.size()));
     assert(images[0].width() == (width + 7) / 8);
     assert(images[0].height() == (height + 7) / 8);
     Image3x8 result(height, width);
@@ -711,14 +708,14 @@ size_t index_(const int32_t row, const int32_t col, const int32_t width)
     return (row * width + col) * 3 + (row + 1);
 }
 
-std::vector<uint8_t> filter(const Image3x8& image, const uint8_t fitler_type)
+std::vector<uint8_t> filter(const Image3x8& image, const uint8_t filter_type)
 {
-    assert(fitler_type <= 5 && "out of range filter_type");
+    assert(filter_type <= 5 && "out of range filter_type");
     const int64_t length_scanline = image.width() * 3 + 1;
     std::vector<uint8_t> result((image.height() * image.width()) * 3 + image.height());
     for (int32_t row = 0; row < image.height(); ++row) {
-        result[length_scanline * row] = fitler_type;
-        switch (fitler_type) {
+        result[length_scanline * row] = filter_type;
+        switch (filter_type) {
         case 0:
             for (int32_t col = 0; col < image.width(); ++col) {
                 const size_t index = index_(row, col, image.width());
@@ -899,11 +896,11 @@ static uint8_t defilter_three(const uint8_t x, const uint8_t a, const uint8_t b)
 
 std::vector<double> make_gauss_kernel(const double std_deviation)
 {
-    const int32_t distance = get_distance(std_deviation);
+    const auto distance = static_cast<int32_t>(round(std_deviation * 3));
     std::vector<double> result((distance * 2 + 1) * (distance * 2 + 1));
     for (int32_t x = -distance; x <= distance; ++x)
         for (int32_t y = -distance; y <= distance; ++y)
-            result[(x + distance) + (y + distance) * distance * 2 + 1] = G(x, y, std_deviation);
+            result[(x + distance) + (y + distance) * (distance * 2 + 1)] = G(x, y, std_deviation);
     return result;
 }
 
@@ -912,24 +909,9 @@ int32_t get_kernel_distance(const std::vector<double>& kernel)
     return std::sqrt(kernel.size()) / 2;
 }
 
-int32_t get_distance(const double std_deviation)
-{
-    double sum = 0;
-    int32_t distance = 0;
-    while (sum <= 0.99) {
-        sum = 0;
-        for (int32_t x = -distance; x <= distance; ++x)
-            for (int32_t y = -distance; y <= distance; ++y)
-                sum += G(x, y, std_deviation);
-        ++distance;
-    }
-    return distance;
-}
-
 double G(const int32_t x, const int32_t y, const double std_deviatiion)
 {
     const double constant = 2.0 * std_deviatiion * std_deviatiion;
-    const double high = -(x * x + y * y);
-    const double bla = high / constant;
-    return std::exp(bla) / constant / std::numbers::pi;
+    const double distance = -(x * x + y * y);
+    return std::exp(distance / constant) / (constant * std::numbers::pi);
 }
