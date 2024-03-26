@@ -55,8 +55,8 @@ build CMakeFiles/untitled.dir/main.cpp.o: CXX_COMPILER__untitled_unscanned_Debug
   OBJECT_DIR = CMakeFiles/untitled.dir
   OBJECT_FILE_DIR = CMakeFiles/untitled.dir
 
-build CMakeFiles/untitled.dir/BmpMetaData.cpp.o: CXX_COMPILER__untitled_unscanned_Debug /home/jason/CLionProjects/Images/BmpMetaData.cpp || cmake_object_order_depends_target_untitled
-  DEP_FILE = CMakeFiles/untitled.dir/BmpMetaData.cpp.o.d
+build CMakeFiles/untitled.dir/Bmp.cpp.o: CXX_COMPILER__untitled_unscanned_Debug /home/jason/CLionProjects/Images/Bmp.cpp || cmake_object_order_depends_target_untitled
+  DEP_FILE = CMakeFiles/untitled.dir/Bmp.cpp.o.d
   FLAGS = -g -std=gnu++20 -fdiagnostics-color=always
   OBJECT_DIR = CMakeFiles/untitled.dir
   OBJECT_FILE_DIR = CMakeFiles/untitled.dir
@@ -93,7 +93,7 @@ build CMakeFiles/untitled.dir/test.cpp.o: CXX_COMPILER__untitled_unscanned_Debug
 #############################################
 # Link the executable untitled
 
-build untitled: CXX_EXECUTABLE_LINKER__untitled_Debug CMakeFiles/untitled.dir/main.cpp.o CMakeFiles/untitled.dir/BmpMetaData.cpp.o CMakeFiles/untitled.dir/Image3x8.cpp.o CMakeFiles/untitled.dir/ReadPNG.cpp.o CMakeFiles/untitled.dir/read_file.cpp.o CMakeFiles/untitled.dir/test.cpp.o
+build untitled: CXX_EXECUTABLE_LINKER__untitled_Debug CMakeFiles/untitled.dir/main.cpp.o CMakeFiles/untitled.dir/Bmp.cpp.o CMakeFiles/untitled.dir/Image3x8.cpp.o CMakeFiles/untitled.dir/ReadPNG.cpp.o CMakeFiles/untitled.dir/read_file.cpp.o CMakeFiles/untitled.dir/test.cpp.o
   FLAGS = -g
   OBJECT_DIR = CMakeFiles/untitled.dir
   POST_BUILD = :

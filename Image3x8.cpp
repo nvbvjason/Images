@@ -1,9 +1,7 @@
 #include "Image3x8.h"
-#include "BmpMetaData.h"
 
 #include <cmath>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 #include <cassert>
 #include <numbers>
@@ -38,7 +36,6 @@ Pixel::Pixel(const PixelDouble& other)
     blue = static_cast<uint8_t>(blue_);
 }
 
-
 PixelDouble::PixelDouble()
     : red(0), green(0), blue(0)
 {
@@ -67,7 +64,6 @@ Image3x8::Image3x8()
 {
 }
 
-
 Image3x8::Image3x8(const std::vector<uint8_t>& data, const int32_t height, const int32_t width)
     : m_height(height), m_width(width), m_offset(s_file_header_size + s_default_information_header_size),
     m_pixels(new Pixel[height * width])
@@ -80,7 +76,6 @@ Image3x8::Image3x8(const std::vector<uint8_t>& data, const int32_t height, const
         }
 }
 
-
 Image3x8::Image3x8(const Image3x8& other)
     : m_height(other.m_height), m_width(other.m_width), m_offset(other.m_offset),
     m_pixels(new Pixel[other.m_height * other.m_width])
@@ -91,7 +86,6 @@ Image3x8::Image3x8(const Image3x8& other)
             (*this)[row][col] = other[row][col];
 }
 
-
 Image3x8::Image3x8(Image3x8&& other) noexcept
     : m_height(other.m_height), m_width(other.m_width), m_offset(other.m_offset),
     m_pixels(other.m_pixels)
@@ -101,43 +95,6 @@ Image3x8::Image3x8(Image3x8&& other) noexcept
     other.m_offset = 0;
     other.m_pixels = nullptr;
 }
-
-Image3x8::Image3x8(const char* path)
-{
-    const std::string path_file(path);
-    if (const std::string file = path_file.substr(path_file.size() - 3); file != "bmp") {
-        std::cout << "Filetype " << file << " is not supported.\n";
-        throw std::exception();
-    }
-    BmpMetaData meta_data(path);
-    m_height = meta_data.height();
-    m_width = meta_data.width();
-    m_offset = meta_data.offset();
-    std::ifstream ifs;
-    ifs.open(meta_data.path(), std::ios::in | std::ios::binary);
-    if (!ifs.is_open()) {
-        std::cout << "File could not be opened" << '\n';
-        return;
-    }
-    const uint8_t padding_amount = ((4 - (m_width * 3) % 4) % 4);
-    ifs.ignore(meta_data.offset());
-    m_pixels = new Pixel[m_height * m_width];
-    for (int32_t row = 0; row < m_height; ++row) {
-        for (int32_t col = 0; col < m_width; ++col) {
-            uint8_t color[3];
-            ifs.read(reinterpret_cast<char*>(color), 3);
-            (*this)[row][col].red = color[2];
-            (*this)[row][col].green = color[1];
-            (*this)[row][col].blue = color[0];
-        }
-        ifs.ignore(padding_amount);
-    }
-    if (meta_data.top_down())
-        reflect_vertical();
-    ifs.close();
-    std::cout << "File read\n";
-}
-
 
 Image3x8::Image3x8(const int32_t height, const int32_t width)
     : m_height(height), m_width(width),
@@ -225,16 +182,6 @@ void Image3x8::color_mask(const double red, const double green, const double blu
     }
 }
 
-#if 0
-1 6 4 6 2 6 4 6
-7 7 7 7 7 7 7 7
-5 6 5 6 5 6 5 6
-7 7 7 7 7 7 7 7
-3 6 4 6 3 6 4 6
-7 7 7 7 7 7 7 7
-5 6 5 6 5 6 5 6
-7 7 7 7 7 7 7 7
-#endif
 std::vector<Image3x8> Image3x8::interlace() const
 {
     std::vector<Image3x8> result(7);
@@ -339,7 +286,7 @@ void Image3x8::gaussian_blur(const double std_deviation)
     const Image3x8 copy = gaussian_copy(get_kernel_distance(kernel));
     for (int32_t row = 0; row < m_height; ++row)
         for (int32_t col = 0; col < m_width; ++col)
-            (*this)[row][col] = apply_gaussian_kernel(row, col, copy, kernel);
+            (*this)[row][col] = gaussian_kernel(row, col, copy, kernel);
 }
 
 void Image3x8::ridge()
@@ -427,39 +374,7 @@ void Image3x8::evaluate_edges(const int32_t row,
         (*this)[row][col].blue = color.blue;
 }
 
-void Image3x8::write(const char* path) const
-{
-    std::ofstream ofs;
-    ofs.open(path, std::ios::out | std::ios::binary);
-    if (!ofs.is_open()) {
-        std::cout << "File cannot be opened";
-        return;
-    }
-    const uint8_t padding_amount = (4 - (m_width * 3) % 4) % 4;
-    const size_t file_size = s_file_header_size + s_default_information_header_size
-        + m_height * (m_width * 3 + padding_amount);
-    uint8_t file_header[s_file_header_size];
-    write_file_header(file_size, file_header);
-    uint8_t information_header[s_default_information_header_size];
-    write_information_header(information_header);
-    ofs.write(reinterpret_cast<char*>(file_header), s_file_header_size);
-    ofs.write(reinterpret_cast<char*>(information_header), s_default_information_header_size);
-    uint8_t bmpPad[3] = { 0, 0, 0 };
-    for (int32_t row = 0; row < m_height; ++row) {
-        for (int32_t col = 0; col < m_width; ++col) {
-            const uint8_t r = (*this)[row][col].red;
-            const uint8_t g = (*this)[row][col].green;
-            const uint8_t b = (*this)[row][col].blue;
-            uint8_t color[3] = { b, g, r };
-            ofs.write(reinterpret_cast<char*>(color), 3);
-        }
-        ofs.write(reinterpret_cast<char*>(bmpPad), padding_amount);
-    }
-    ofs.close();
-    std::cout << "file created\n";
-}
-
-Image3x8 Image3x8::gaussian_copy(const int32_t distance) const
+Image3x8 Image3x8::gaussian_copy(const int32_t distance)
 {
     Image3x8 result(m_height + distance * 2, m_width + distance * 2);
     for (int32_t row = 0; row < m_height; ++row)
@@ -487,10 +402,10 @@ Image3x8 Image3x8::gaussian_copy(const int32_t distance) const
     return result;
 }
 
-Pixel Image3x8::apply_gaussian_kernel(int32_t row_img,
-                                      int32_t col_img,
-                                      const Image3x8& copy,
-                                      const std::vector<double>& kernel)
+Pixel Image3x8::gaussian_kernel(int32_t row_img,
+                                int32_t col_img,
+                                const Image3x8& copy,
+                                const std::vector<double>& kernel)
 {
     PixelDouble temp;
     int32_t index_kernel = 0;
@@ -508,10 +423,10 @@ Pixel Image3x8::apply_gaussian_kernel(int32_t row_img,
 }
 
 uint8_t Image3x8::kernel_3x3_0(const int32_t row_img,
-                               const int32_t col_img,
-                               const Image3x8& copy,
-                               const std::vector<int8_t>& kernel,
-                               PixelDouble& color) const
+    const int32_t col_img,
+    const Image3x8& copy,
+    const std::vector<int8_t>& kernel,
+    PixelDouble& color) const
 {
     uint8_t index = 0;
     uint8_t counter = 0;
@@ -540,84 +455,6 @@ Pixel edges_color_eval(const PixelDouble& color_x, const PixelDouble& color_y)
     clamp(green, 0, 255);
     clamp(blue, 0, 255);
     return { static_cast<uint8_t>(red), static_cast<uint8_t>(green), static_cast<uint8_t>(blue) };
-}
-
-void Image3x8::write_file_header(const size_t file_size, uint8_t* file_header)
-{
-    // file type
-    file_header[0] = 'B';
-    file_header[1] = 'M';
-    // file size
-    file_header[2] = file_size;
-    file_header[3] = file_size >> 8;
-    file_header[4] = file_size >> 16;
-    file_header[5] = file_size >> 24;
-    // Reserved (not used)
-    file_header[6] = 0;
-    file_header[7] = 0;
-    // Reserved 1 (not used)
-    file_header[8] = 0;
-    file_header[9] = 0;
-    // Pixel data offset
-    file_header[10] = s_file_header_size + s_default_information_header_size;
-    file_header[11] = 0;
-    file_header[12] = 0;
-    file_header[13] = 0;
-}
-
-void Image3x8::write_information_header(uint8_t* information_header) const
-{
-    // Header size
-    information_header[0] = s_default_information_header_size;
-    information_header[1] = 0;
-    information_header[2] = 0;
-    information_header[3] = 0;
-    // Image width
-    information_header[4] = m_width;
-    information_header[5] = m_width >> 8;
-    information_header[6] = m_width >> 16;
-    information_header[7] = m_width >> 24;
-    // Image height
-    information_header[8] = m_height;
-    information_header[9] = m_height >> 8;
-    information_header[10] = m_height >> 16;
-    information_header[11] = m_height >> 24;
-    // Planes
-    information_header[12] = 1;
-    information_header[13] = 0;
-    // Bits per pixel (RGB)
-    information_header[14] = 24;
-    information_header[15] = 0;
-    // Compression (No compression)
-    information_header[16] = 0;
-    information_header[17] = 0;
-    information_header[18] = 0;
-    information_header[19] = 0;
-    // Image size (No compression)
-    information_header[20] = 0;
-    information_header[21] = 0;
-    information_header[22] = 0;
-    information_header[23] = 0;
-    // X pixel per meter (Not specified)
-    information_header[24] = 0;
-    information_header[25] = 0;
-    information_header[26] = 0;
-    information_header[27] = 0;
-    // Y pixel per meter (Not specified)
-    information_header[28] = 0;
-    information_header[29] = 0;
-    information_header[30] = 0;
-    information_header[31] = 0;
-    // Total colors (Color palette not used)
-    information_header[32] = 0;
-    information_header[33] = 0;
-    information_header[34] = 0;
-    information_header[35] = 0;
-    // Important colors (Generally ignored)
-    information_header[36] = 0;
-    information_header[37] = 0;
-    information_header[38] = 0;
-    information_header[39] = 0;
 }
 
 static Pixel get_pixel(const std::vector<Image3x8>& images,
@@ -693,7 +530,7 @@ Image3x8 interlace(const std::vector<Image3x8>& images, const int32_t height, co
 {
     if (images.empty() || 8 <= images.size())
         throw std::exception();
-    const std::vector<std::vector<int8_t> > interlace_kernel = make_interlace_kernel(static_cast<int32_t>(images.size()));
+    const std::vector<std::vector<int8_t> > interlace_kernel = make_interlace_kernel(images.size());
     assert(images[0].width() == (width + 7) / 8);
     assert(images[0].height() == (height + 7) / 8);
     Image3x8 result(height, width);
@@ -708,14 +545,14 @@ size_t index_(const int32_t row, const int32_t col, const int32_t width)
     return (row * width + col) * 3 + (row + 1);
 }
 
-std::vector<uint8_t> filter(const Image3x8& image, const uint8_t filter_type)
+std::vector<uint8_t> filter(const Image3x8& image, const uint8_t fitler_type)
 {
-    assert(filter_type <= 5 && "out of range filter_type");
+    assert(fitler_type <= 5 && "out of range filter_type");
     const int64_t length_scanline = image.width() * 3 + 1;
     std::vector<uint8_t> result((image.height() * image.width()) * 3 + image.height());
     for (int32_t row = 0; row < image.height(); ++row) {
-        result[length_scanline * row] = filter_type;
-        switch (filter_type) {
+        result[length_scanline * row] = fitler_type;
+        switch (fitler_type) {
         case 0:
             for (int32_t col = 0; col < image.width(); ++col) {
                 const size_t index = index_(row, col, image.width());
@@ -896,7 +733,7 @@ static uint8_t defilter_three(const uint8_t x, const uint8_t a, const uint8_t b)
 
 std::vector<double> make_gauss_kernel(const double std_deviation)
 {
-    const auto distance = static_cast<int32_t>(round(std_deviation * 3));
+    const int32_t distance = get_distance(std_deviation);
     std::vector<double> result((distance * 2 + 1) * (distance * 2 + 1));
     for (int32_t x = -distance; x <= distance; ++x)
         for (int32_t y = -distance; y <= distance; ++y)
@@ -909,9 +746,24 @@ int32_t get_kernel_distance(const std::vector<double>& kernel)
     return std::sqrt(kernel.size()) / 2;
 }
 
+int32_t get_distance(const double std_deviation)
+{
+    double sum = 0;
+    int32_t distance = 0;
+    while (sum <= 0.99) {
+        sum = 0;
+        for (int32_t x = -distance; x <= distance; ++x)
+            for (int32_t y = -distance; y <= distance; ++y)
+                sum += G(x, y, std_deviation);
+        ++distance;
+    }
+    return distance;
+}
+
 double G(const int32_t x, const int32_t y, const double std_deviatiion)
 {
     const double constant = 2.0 * std_deviatiion * std_deviatiion;
-    const double distance = -(x * x + y * y);
-    return std::exp(distance / constant) / (constant * std::numbers::pi);
+    const double high = -(x * x + y * y);
+    const double bla = high / constant;
+    return std::exp(bla) / constant / std::numbers::pi;
 }
