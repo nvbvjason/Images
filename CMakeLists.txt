@@ -4,6 +4,8 @@ project(untitled)
 set(CMAKE_CXX_STANDARD 20)
 
 add_executable(untitled main.cpp
+                        png_helpers.cpp
+                        png_helpers.h
                         Bmp.cpp
                         Bmp.h
                         Image3x8.h

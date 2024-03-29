@@ -93,20 +93,14 @@ private:
 };
 
 static Pixel edges_color_eval(const PixelDouble& color_x, const PixelDouble& color_y);
+std::vector<double> make_gauss_kernel(double std_deviation);
+int32_t get_kernel_distance(const std::vector<double>& kernel);
+int32_t get_distance(double std_deviation);
+double G(int32_t x, int32_t y, double std_deviatiion);
 static Pixel get_pixel(const std::vector<Image3x8>& images,
     const std::vector<std::vector<int8_t> >& kernel,
     int32_t height,
     int32_t width);
-Image3x8 interlace(const std::vector<Image3x8>& images, int32_t height, int32_t width);
-static std::vector<std::vector<int8_t> > make_interlace_kernel(int32_t size);
-std::vector<uint8_t> filter(const Image3x8& image, uint8_t fitler_type);
-static size_t index_(int32_t row, int32_t col, int32_t width);
-static uint8_t filter_one_two(uint8_t x, uint8_t ab);
-static uint8_t filter_three(uint8_t x, uint8_t a, uint8_t b);
-static uint8_t peath(uint8_t a, uint8_t b, uint8_t c);
-Image3x8 defilter(const std::vector<uint8_t>& data, int32_t height, int32_t width);
-static uint8_t defilter_one_two(uint8_t x, uint8_t ab);
-static uint8_t defilter_three(uint8_t x, uint8_t a, uint8_t b);
 
 void Image3x8::edges_pixel_helper(const int32_t row, const int32_t col, const Image3x8& copy, PixelDouble& color,
     const double factor)
@@ -124,9 +118,5 @@ static void clamp(double& num, const int32_t low, const int32_t up)
         num = up;
 }
 
-std::vector<double> make_gauss_kernel(double std_deviation);
-int32_t get_kernel_distance(const std::vector<double>& kernel);
-int32_t get_distance(double std_deviation);
-double G(int32_t x, int32_t y, double std_deviatiion);
 
 #endif //IMAGE_H
